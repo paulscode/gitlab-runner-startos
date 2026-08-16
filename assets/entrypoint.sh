@@ -100,6 +100,17 @@ fi
 # Concurrency is a top-level config key, not a register flag, so it is applied
 # on every start to let the Configure action change it without re-registering.
 if [ -f "$CONFIG" ]; then
+  # Re-assert where GitLab is. StartOS reassigns external ports whenever a
+  # package is reinstalled or restored, so the address captured at registration
+  # goes stale -- and nothing reports it: the runner simply stops collecting
+  # jobs, which reads as GitLab having no runner rather than a bad address.
+  if [ -n "$GITLAB_URL" ]; then
+    sed -i -E "s|^([[:space:]]*)url = \".*\"|\1url = \"$GITLAB_URL\"|" "$CONFIG"
+    if grep -qE '^[[:space:]]*clone_url = ' "$CONFIG"; then
+      sed -i -E "s|^([[:space:]]*)clone_url = \".*\"|\1clone_url = \"$GITLAB_URL\"|" "$CONFIG"
+    fi
+  fi
+
   # Re-assert the podman socket. `--docker-host` is written into the
   # [runners.docker] section as `host`, at registration time, so a change to the
   # runtime dir leaves the runner dialling a socket that no longer exists -- and

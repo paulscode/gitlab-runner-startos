@@ -76,9 +76,10 @@ Two files are modelled, and the division between them is the thing to understand
 **`config.toml`** (`/data/runner/config.toml`) belongs to `gitlab-runner`, which writes it at registration. This package reads it to answer one question — *has this runner registered?* — and rewrites exactly two keys on every start:
 
 - `concurrent`, so the Configure action can change it without re-registering
+- `url` and `clone_url`, because StartOS reassigns external ports whenever a package is reinstalled or restored, and a stale address here does not announce itself — the runner simply stops collecting jobs, which looks like GitLab having no runner
 - the Podman socket under `[runners.docker]`, because it is baked in at registration and would otherwise leave the runner dialling a socket that no longer exists after the runtime directory moves
 
-Everything else in that file is left alone, including anything you edit by hand. A hand edit to those two keys will not survive a restart.
+Everything else in that file is left alone, including anything you edit by hand. A hand edit to those four keys will not survive a restart.
 
 Because registration data lives in `config.toml`, the Configure action **deletes it** so the next start re-registers with the new settings.
 

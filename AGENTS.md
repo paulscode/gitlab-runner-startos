@@ -18,10 +18,12 @@ discover, because none of them fail until a job actually runs:
 - **Podman's runroot must not be on the volume.** It holds locks valid only for
   one boot; a stale copy makes the next job fail creating its cache volume.
   Only the image store belongs on `/data`.
-- **Values baked into `config.toml` at registration go stale.** The clone URL
-  and the Podman socket are both written once by `gitlab-runner register` and
-  then trusted forever. Both are re-asserted on every start; anything similar
-  added later needs the same treatment.
+- **Values baked into `config.toml` at registration go stale.** GitLab's URL,
+  the clone URL and the Podman socket are all written once by `gitlab-runner
+  register` and then trusted forever, while the things they point at move --
+  StartOS reassigns external ports on every reinstall. All are re-asserted on
+  every start; anything similar added later needs the same treatment. This has
+  bitten three times so far, each time silently.
 - **The clone URL cannot be GitLab's own external URL.** That is an mDNS
   `.local` name with a certificate from the server's own CA, and a job container
   can resolve neither. Registration passes the internal bridge address instead.
