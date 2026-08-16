@@ -27,6 +27,13 @@ release:
 	@cd $(BUILD_DIR) && sha256sum *.s9pk > SHA256SUMS
 	@echo "→ $(BUILD_DIR)/"
 
+# Publish the built release to GitHub so specific versions can be sideloaded.
+# Sign builds/<version>/SHA256SUMS on the air-gapped machine first and put the
+# detached signature beside it; this only uploads what is already there.
+.PHONY: publish-github
+publish-github:
+	@./scripts/publish-github.sh "$(BUILD_DIR)" "$(TAG)"
+
 .PHONY: print-tag
 print-tag:
 	@echo '$(TAG)'
