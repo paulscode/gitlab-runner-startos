@@ -78,13 +78,14 @@ else
 
 \`SHA256SUMS\` covers every artifact in this release and is signed separately.
 
-**aarch64 is untested.** It is built from upstream's official ARM image but has
-not been run on ARM hardware, and GitLab documents outstanding issues on that
-architecture. Take a backup before depending on it, and please report results.
-The x86_64 build is tested.
+Requires GitLab 19.2.2:1 or later on the same server -- that is the version
+carrying the action this package calls to register itself.
 
-Older releases stay available because GitLab limits how far an instance can
-upgrade in one step; a long-dormant install may need one of them first."
+**aarch64 is untested.** It is cross-built under emulation and has never run on
+ARM hardware. Every CI job here runs as a nested rootless container, so the
+parts most likely to differ by architecture are the parts this package depends
+on. Take a backup before depending on it, and please report results. The x86_64
+build is tested."
 fi
 
 echo "Published: $(gh release view "$TAG" --json url -q .url)"
