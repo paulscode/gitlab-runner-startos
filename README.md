@@ -71,7 +71,7 @@ The split is deliberate. The image store must persist, or every job re-pulls its
 
 Two files are modelled, and the division between them is the thing to understand: one is owned by this package, the other by `gitlab-runner`.
 
-**`store.json`** (`/data/store.json`) is StartOS-side state only: the runner authentication token, whether it targets the GitLab on this server or an external one, the runner's name and tags, the default job image, and the concurrency limit. It is created at install with defaults and written only by the Configure action.
+**`store.json`** (`/data/store.json`) is StartOS-side state only: the runner authentication token, whether it targets the GitLab on this server or an external one, the runner's name, the default job image, and the concurrency limit. It is created at install with defaults and written only by the Configure action.
 
 **`config.toml`** (`/data/runner/config.toml`) belongs to `gitlab-runner`, which writes it at registration. This package reads it to answer one question — *has this runner registered?* — and rewrites exactly two keys on every start:
 
@@ -112,7 +112,9 @@ Registration happens on the next **restart** after configuring, not at the momen
 
 One action.
 
-**Configure** — Run after installing, and again whenever you want to change how jobs run. Choose the GitLab on this server (a token is created for you) or a different instance (paste a token beginning with `glrt-`), and set the runner's name, tags, default job image, and concurrency.
+**Configure** — Run after installing, and again whenever you want to change how jobs run. Choose the GitLab on this server (a token is created for you) or a different instance (paste a token beginning with `glrt-`), and set the runner's name, default job image, and concurrency.
+
+**Create a Custom Runner in GitLab** — Queues a task on GitLab for its Create Runner Token action, which unlike the automatic path accepts a name and tags. Use it when the runner needs tags set at creation; the resulting token goes back into Configure under *A different GitLab*.
 
 Writes `store.json` and **deletes `config.toml`** so the next start re-registers. Instant, but **requires a restart to take effect**. Safe to repeat, with one consequence worth knowing: each run against the local GitLab creates a **new** runner server-side, so repeated use leaves stale runner entries in GitLab's admin area to delete.
 
@@ -153,7 +155,7 @@ A restored runner reconnects on its own: the registration in `config.toml` is st
 The runner has no registration. Run Configure, then restart. If you already did, check the service logs for a registration error — a token GitLab has revoked will fail here.
 
 **Jobs stay "pending" in GitLab forever.**
-GitLab has no runner willing to take them. Check Admin Area → CI/CD → Runners: if this runner is offline, look at the service logs; if it is online, the cause is almost always tags — a job with tags will only run on a runner carrying them. Clearing this runner's tags in Configure makes it accept any job.
+GitLab has no runner willing to take them. Check Admin Area → CI/CD → Runners: if this runner is offline, look at the service logs; if it is online, the cause is almost always tags — a job with tags will only run on a runner carrying them. Runners created by Configure carry no tags and accept every job, so this only arises if tags were added in GitLab afterwards; remove them there.
 
 **Job fails with "Could not resolve host" while cloning.**
 The runner is cloning from an address the job container cannot resolve. This package registers with a clone URL pointing at the internal bridge specifically to avoid that; if you see it, the registration predates that setting — run Configure and restart to re-register.

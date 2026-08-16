@@ -47,14 +47,6 @@ const inputSpec = InputSpec.of({
     required: false,
     default: 'startos-runner',
   }),
-  tags: Value.text({
-    name: i18n('Tags'),
-    description: i18n(
-      'Comma-separated tags. Jobs can target a runner by tag; leave blank to accept any job.',
-    ),
-    required: false,
-    default: null,
-  }),
   defaultImage: Value.text({
     name: i18n('Default Job Image'),
     description: i18n(
@@ -99,7 +91,6 @@ export const configure = sdk.Action.withInput(
     if (!s) return {}
     return {
       name: s.name || undefined,
-      tags: s.tags || undefined,
       defaultImage: s.defaultImage,
       concurrent: s.concurrent,
     }
@@ -111,29 +102,23 @@ export const configure = sdk.Action.withInput(
     let externalUrl = ''
 
     if (local) {
-      // Ask GitLab to mint a runner for us. This is the whole point of the
-      // integration: runner *registration* tokens were removed upstream, so a
-      // runner must be created server-side first, and doing that by hand means
-      // the user copying a token between two pages of the same server.
-      const tags = (input.tags ?? '')
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
-
-      const res = await effects.action.run<{
-        description: string
-        tags: string
-        runUntagged: boolean
-      }>({
+      // Ask GitLab to mint a runner for us. Registration tokens were removed
+      // upstream, so a runner has to be created server-side first; doing that
+      // by hand means copying a token between two pages of the same server.
+      //
+      // Deliberately the *no-input* variant. A service can only invoke another
+      // service's action when it takes no input: the SDK validates submitted
+      // input against a spec captured by a prior getActionInput on the same
+      // event, and a cross-service call cannot perform that handshake. The
+      // consequence is that the runner it creates is untagged and generically
+      // named -- both adjustable in GitLab afterwards, and the Custom Runner
+      // action exists for anyone who wants them set at creation.
+      const res = await effects.action.run({
         packageId: 'gitlab',
-        actionId: 'create-runner-token',
-        input: {
-          description: input.name || 'startos-runner',
-          tags: tags.join(','),
-          // A tagged runner that refuses untagged jobs silently ignores most
-          // pipelines, which reads as the runner being broken.
-          runUntagged: true,
-        },
+        actionId: 'create-runner-token-auto',
+        // Required by the OS even for an action that takes none; the
+        // TypeScript binding marks it optional but the RPC rejects its absence.
+        input: {},
       })
 
       // ActionResult is a versioned union; only v1 carries `result`.
@@ -168,7 +153,6 @@ export const configure = sdk.Action.withInput(
       useLocalGitlab: local,
       externalUrl,
       name: input.name ?? 'startos-runner',
-      tags: input.tags ?? '',
       defaultImage: input.defaultImage,
       concurrent: input.concurrent,
     })

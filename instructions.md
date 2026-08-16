@@ -25,15 +25,24 @@ You can confirm it worked in GitLab under **Admin Area → CI/CD → Runners**, 
 
 ## The settings
 
-**Runner Name** — how it is labelled in GitLab. Only matters if you run more than one.
-
-**Tags** — leave blank unless you have a reason not to. Tags let a job ask for a particular runner (`tags: [gpu]` in `.gitlab-ci.yml`). With tags set, this runner still accepts untagged jobs, but a job asking for a tag you have not set will wait forever.
+**Runner Name** — how it is labelled in GitLab. Only matters if you run more than one. Note that this labels the *service*, not the runner entry GitLab creates for you: that one is always called "StartOS Runner", and you can rename it in GitLab.
 
 **Default Job Image** — used for jobs whose `.gitlab-ci.yml` does not name one. Most projects specify their own.
 
 **Concurrent Jobs** — how many jobs run at once. Each is a full build competing for the same memory and CPU as GitLab itself, so raise this only once you know what your own pipelines cost. If the server runs short of memory it will shut down whichever service is using the most, and that is usually GitLab.
 
 If pipelines feel slow to *start* rather than slow to run, that is a different thing and is already handled — the runner is configured to keep several job requests open to GitLab rather than upstream's default of one.
+
+## Tags
+
+The runner created for you has no tags and accepts every job, which is what you want unless you run several runners and need jobs to pick between them.
+
+Tags cannot be set from here, because of how the two services talk to each other — one service can ask another to do something, but cannot pass it any details. There are two ways round it:
+
+- Create the runner as usual, then add tags to it in GitLab under **Admin Area → CI/CD → Runners**. Nothing needs restarting.
+- Or run the **Create a Custom Runner in GitLab** action, which adds a task to GitLab where you can set the name and tags yourself. Run it there, copy the token, then come back and paste it into Configure under *A different GitLab*, using this server's GitLab URL.
+
+Once a runner has tags it still accepts untagged jobs, but a job asking for a tag you have not set will wait forever.
 
 ## Connecting to a different GitLab
 
@@ -48,3 +57,4 @@ To get that token: in the other GitLab, go to the settings for the instance, gro
 - **The first job is slow.** It downloads a helper image and your job image. Later jobs reusing the same image are much quicker.
 - **Docker-in-Docker will not work.** Jobs run unprivileged, so pipelines that build container images with `docker:dind` are not supported here.
 - **Re-running Configure creates a new runner** in GitLab each time you use *The GitLab on this server*. The old entries stay in the Runners list and can be deleted there.
+- **GitLab has to be running** when you use *The GitLab on this server*, since it is GitLab that creates the runner.
