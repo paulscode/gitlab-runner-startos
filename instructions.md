@@ -31,7 +31,9 @@ You can confirm it worked in GitLab under **Admin Area → CI/CD → Runners**, 
 
 **Default Job Image** — used for jobs whose `.gitlab-ci.yml` does not name one. Most projects specify their own.
 
-**Concurrent Jobs** — how many jobs run at once. Each is a full build competing for the same memory and CPU, so raise this only if your server has room to spare.
+**Concurrent Jobs** — how many jobs run at once. Each is a full build competing for the same memory and CPU as GitLab itself, so raise this only once you know what your own pipelines cost. If the server runs short of memory it will shut down whichever service is using the most, and that is usually GitLab.
+
+If pipelines feel slow to *start* rather than slow to run, that is a different thing and is already handled — the runner is configured to keep several job requests open to GitLab rather than upstream's default of one.
 
 ## Connecting to a different GitLab
 

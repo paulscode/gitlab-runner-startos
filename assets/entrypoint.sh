@@ -8,6 +8,7 @@ set -euo pipefail
 : "${RUNNER_NAME:=startos-runner}"
 : "${RUNNER_TAGS:=}"
 : "${RUNNER_CONCURRENT:=1}"
+: "${RUNNER_REQUEST_CONCURRENCY:=4}"
 : "${RUNNER_IMAGE:=alpine:latest}"
 
 DATA=/data/runner
@@ -94,7 +95,8 @@ if [ ! -f "$CONFIG" ]; then
     --docker-image "$RUNNER_IMAGE" \
     --docker-host "$DOCKER_HOST" \
     --docker-privileged=false \
-    --docker-volumes /certs/client
+    --docker-volumes /certs/client \
+    --request-concurrency "$RUNNER_REQUEST_CONCURRENCY"
 fi
 
 # Concurrency is a top-level config key, not a register flag, so it is applied
@@ -109,6 +111,17 @@ if [ -f "$CONFIG" ]; then
     if grep -qE '^[[:space:]]*clone_url = ' "$CONFIG"; then
       sed -i -E "s|^([[:space:]]*)clone_url = \".*\"|\1clone_url = \"$GITLAB_URL\"|" "$CONFIG"
     fi
+  fi
+
+  # Limits how many job-request connections the runner holds open to GitLab --
+  # distinct from `concurrent`, which limits how many jobs actually run. At 1 a
+  # pipeline can sit pending for GitLab's whole long-poll timeout even with an
+  # idle runner, which is what most "CI is slow" complaints actually are. Costs
+  # a couple of idle HTTP connections to a GitLab on the same box.
+  if grep -qE '^[[:space:]]*request_concurrency = ' "$CONFIG"; then
+    sed -i -E "s|^([[:space:]]*)request_concurrency = .*|\1request_concurrency = ${RUNNER_REQUEST_CONCURRENCY}|" "$CONFIG"
+  else
+    sed -i -E "0,/^\[\[runners\]\]/s||[[runners]]\n  request_concurrency = ${RUNNER_REQUEST_CONCURRENCY}|" "$CONFIG"
   fi
 
   # Re-assert the podman socket. `--docker-host` is written into the

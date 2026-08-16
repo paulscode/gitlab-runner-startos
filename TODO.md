@@ -35,10 +35,10 @@
       is verified (token minted by GitLab, stored, runner registered), but the
       form itself and the cross-package `action.run` call have not been driven
       end to end — the CLI cannot supply action input without the UI handshake.
-- [ ] Decide the `concurrent` default (currently 1, verified working at 2).
-      Separately, gitlab-runner warns that `request_concurrency=1` causes job
-      delays against GitLab's long polling — that is a different setting and is
-      not currently exposed.
+- Decided: `concurrent` stays at 1 (asymmetric failure modes — queuing is
+  visible and harmless, over-subscription gets GitLab OOM-killed), and
+  `request_concurrency` is pinned to 4, which is what upstream's warning was
+  actually about. Both verified on hardware.
 
 ## Deferred
 

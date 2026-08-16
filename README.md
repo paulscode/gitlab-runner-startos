@@ -76,10 +76,11 @@ Two files are modelled, and the division between them is the thing to understand
 **`config.toml`** (`/data/runner/config.toml`) belongs to `gitlab-runner`, which writes it at registration. This package reads it to answer one question — *has this runner registered?* — and rewrites exactly two keys on every start:
 
 - `concurrent`, so the Configure action can change it without re-registering
+- `request_concurrency`, pinned to a value that avoids upstream's job-pickup latency (see Limitations)
 - `url` and `clone_url`, because StartOS reassigns external ports whenever a package is reinstalled or restored, and a stale address here does not announce itself — the runner simply stops collecting jobs, which looks like GitLab having no runner
 - the Podman socket under `[runners.docker]`, because it is baked in at registration and would otherwise leave the runner dialling a socket that no longer exists after the runtime directory moves
 
-Everything else in that file is left alone, including anything you edit by hand. A hand edit to those four keys will not survive a restart.
+Everything else in that file is left alone, including anything you edit by hand. A hand edit to those five keys will not survive a restart.
 
 Because registration data lives in `config.toml`, the Configure action **deletes it** so the next start re-registers with the new settings.
 
@@ -141,8 +142,8 @@ A restored runner reconnects on its own: the registration in `config.toml` is st
 2. **Privileged jobs are not supported.** Containers run unprivileged, so Docker-in-Docker (`docker:dind`) and anything else requiring privileged mode will not work.
 3. **Jobs cannot bind host ports.** Nothing a job runs is reachable from outside the service.
 4. **One runner per install.** The package registers a single runner; upstream supports several in one `config.toml`.
-5. **`concurrent` is capped at 16** by the Configure action, and defaults to 1. Every concurrent job is a full build competing for the same RAM and CPU.
-6. **`request_concurrency` is not exposed.** The runner logs advice about raising it to reduce job-start latency against GitLab's long polling; there is currently no way to do so through this package.
+5. **`concurrent` is capped at 16** by the Configure action, and defaults to **1**. That default is deliberate rather than timid: every concurrent job is a full build competing for the same RAM and CPU as GitLab itself, and when a StartOS box comes under memory pressure the OS kills the heaviest container — which is GitLab, not the runner. So an over-ambitious setting here takes down the Git server rather than merely slowing CI. Raise it once you know what your own jobs cost.
+6. **`request_concurrency` is fixed at 4 and not user-configurable.** It governs how many job-request connections the runner holds open to GitLab, not how many jobs run. Upstream defaults it to 1, which leaves pipelines sitting pending for the whole long-poll timeout even against an idle runner; 4 is upstream's own recommendation and costs only a couple of idle connections to a GitLab on the same machine. There is no interesting decision here for a user to make, so it is not surfaced.
 7. **aarch64 is not built.** Cross-building the Podman stack requires emulation and has not been validated on ARM hardware.
 8. **Nested containers cannot use IPv6** by default — rootless networking is IPv4-only.
 

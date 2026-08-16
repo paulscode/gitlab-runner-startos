@@ -94,6 +94,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
           RUNNER_NAME: store.name || 'startos-runner',
           RUNNER_TAGS: store.tags,
           RUNNER_CONCURRENT: String(store.concurrent),
+          // Not user-facing: this governs how many job-request connections the
+          // runner keeps open to GitLab, not how many jobs run. Leaving it at
+          // the upstream default of 1 makes pipelines sit pending for the whole
+          // long-poll timeout even when the runner is idle.
+          RUNNER_REQUEST_CONCURRENCY: '4',
           RUNNER_IMAGE: store.defaultImage,
           // Deliberately the container's own rootfs, not the volume: this
           // holds Podman's locks and transient state, which must not survive a
