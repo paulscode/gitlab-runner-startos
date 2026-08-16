@@ -21,6 +21,10 @@
   Podman, with `FF_NETWORK_PER_BUILD`.
 - **Cache is reused across runs.** Second run reported `Successfully extracted
   cache` and read back the marker the first run wrote.
+- **Backup and restore round-trips.** Backed up, uninstalled (volume deleted),
+  restored: config.toml checksum, registration token, cached images and data
+  size all came back identical, the runner reconnected as `online` in GitLab,
+  and a pipeline ran green on it.
 - **Concurrency works.** With `concurrent = 2`, two jobs overlapped for the full
   25s of their runtime rather than serialising. The entrypoint's rewrite of
   `concurrent` from the store was applied correctly.
@@ -31,7 +35,6 @@
       is verified (token minted by GitLab, stored, runner registered), but the
       form itself and the cross-package `action.run` call have not been driven
       end to end — the CLI cannot supply action input without the UI handshake.
-- [ ] Backup/restore round trip
 - [ ] Decide the `concurrent` default (currently 1, verified working at 2).
       Separately, gitlab-runner warns that `request_concurrency=1` causes job
       delays against GitLab's long polling — that is a different setting and is
