@@ -31,13 +31,11 @@
       is verified (token minted by GitLab, stored, runner registered), but the
       form itself and the cross-package `action.run` call have not been driven
       end to end — the CLI cannot supply action input without the UI handshake.
-- [ ] README and instructions.md
 - [ ] Backup/restore round trip
 - [ ] Decide the `concurrent` default (currently 1, verified working at 2).
       Separately, gitlab-runner warns that `request_concurrency=1` causes job
       delays against GitLab's long polling — that is a different setting and is
       not currently exposed.
-- [ ] Replace icon.svg
 
 ## Deferred
 

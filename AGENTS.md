@@ -10,14 +10,22 @@ Work this package's `TODO.md` from top to bottom. Keep `README.md` (the package'
 
 ## This repo
 
-<!--
-TODO: write the bullets for this package, then delete this comment.
 
-Only what someone *changing* this package needs and cannot get from README.md or
-instructions.md. What belongs here, and what does not, is set out under
-"AGENTS.md and CLAUDE.md":
+This package runs a rootless Podman engine inside the service container so each
+CI job is sandboxed. Three things about that are easy to break and expensive to
+discover, because none of them fail until a job actually runs:
 
-  ../start-technologies/projects/start-sdk/docs/src/project-structure.md
+- **Podman's runroot must not be on the volume.** It holds locks valid only for
+  one boot; a stale copy makes the next job fail creating its cache volume.
+  Only the image store belongs on `/data`.
+- **Values baked into `config.toml` at registration go stale.** The clone URL
+  and the Podman socket are both written once by `gitlab-runner register` and
+  then trusted forever. Both are re-asserted on every start; anything similar
+  added later needs the same treatment.
+- **The clone URL cannot be GitLab's own external URL.** That is an mDNS
+  `.local` name with a certificate from the server's own CA, and a job container
+  can resolve neither. Registration passes the internal bridge address instead.
 
-A simple package needs none of this — delete the section rather than padding it.
--->
+Testing means running a real pipeline. Nothing above is visible from
+inspection, and the health check only reports whether the runner registered.
+
