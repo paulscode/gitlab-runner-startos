@@ -12,18 +12,15 @@
 - Unconfigured state degrades gracefully (stays up, reports needs-configuring)
   rather than crash-looping
 
-## Blocked on the environment, not the package
+- **A real CI job runs to green.** Clones the repo, pulls the helper image and
+  the job image, executes the script in a sandboxed container, and uploads an
+  artifact that downloads back intact. `helper_image` needed no pinning.
 
-- [ ] **Run an actual CI job.** Requires pulling a job image, which needs DNS.
-      The test box's local resolver is broken — `ping 1.1.1.1` succeeds and
-      `nslookup github.com 1.1.1.1` resolves, but the system resolver at
-      127.0.0.1 does not answer, so every container inherits a resolver that
-      fails. Affects GitLab's container equally, so it is box-level.
-      Until that is fixed the following are untested:
-        - a plain job
-        - a job with a `services:` block (networking between job containers)
-        - a job using the cache
-        - whether `helper_image` needs pinning
+## Still untested
+
+- [ ] A job with a `services:` block (networking between job containers)
+- [ ] A job using the cache across runs
+- [ ] Concurrent jobs (`concurrent > 1`)
 
 ## Remaining before release
 

@@ -95,7 +95,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
           RUNNER_TAGS: store.tags,
           RUNNER_CONCURRENT: String(store.concurrent),
           RUNNER_IMAGE: store.defaultImage,
-          XDG_RUNTIME_DIR: `${DATA_DIR}/runner/run`,
+          // Deliberately the container's own rootfs, not the volume: this
+          // holds Podman's locks and transient state, which must not survive a
+          // restart. See the note in assets/entrypoint.sh.
+          XDG_RUNTIME_DIR: '/tmp/podman-run',
         },
       },
       ready: {

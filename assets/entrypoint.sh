@@ -14,17 +14,34 @@ DATA=/data/runner
 CONFIG="$DATA/config.toml"
 mkdir -p "$DATA"
 
-# Podman needs a writable runtime dir for its socket and transient state, and a
-# storage root that survives restarts so job images are not re-pulled every time.
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$DATA/run}"
+# Two Podman directories with opposite lifetimes, and getting this wrong is
+# subtle: the *storage* root holds images and must persist so every job does not
+# re-pull them, but the *runroot* holds locks and transient container state and
+# must NOT. Left on the volume, stale locks survive a restart and the next job
+# dies with "deadlock due to lock mismatch" while creating its cache volume.
+#
+# So runroot lives in the container's own rootfs, which StartOS rebuilds on each
+# start, and only the image store is on the volume.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/podman-run}"
 STORAGE="$DATA/containers/storage"
-mkdir -p "$XDG_RUNTIME_DIR/podman" "$XDG_RUNTIME_DIR/containers" "$STORAGE"
+RUNROOT="$XDG_RUNTIME_DIR/containers"
+mkdir -p "$XDG_RUNTIME_DIR/podman" "$RUNROOT" "$STORAGE"
 chmod 700 "$XDG_RUNTIME_DIR"
 SOCK="$XDG_RUNTIME_DIR/podman/podman.sock"
 
 # --cgroup-manager=cgroupfs because there is no user systemd session in a
 # subcontainer, so podman cannot ask systemd to create cgroups for it.
-podman --root "$STORAGE" --runroot "$XDG_RUNTIME_DIR/containers" \
+# Podman records the runroot it was last used with inside the image store and
+# refuses to start if the two disagree. That can only happen when the runroot
+# has moved, which makes the recorded state stale rather than valuable -- and
+# the store holds nothing but re-pullable images. Detect it by asking the store
+# directly rather than by parsing an error, and clear it.
+if [ -f "$STORAGE/db.sql" ] && ! grep -qa -- "$RUNROOT" "$STORAGE/db.sql" 2>/dev/null; then
+  echo "Podman image store references a stale runroot; resetting it." >&2
+  rm -rf "${STORAGE:?}"/* 2>/dev/null || true
+fi
+
+podman --root "$STORAGE" --runroot "$RUNROOT" \
        --cgroup-manager=cgroupfs system service -t 0 "unix://$SOCK" &
 PODMAN_PID=$!
 
@@ -61,10 +78,16 @@ if [ ! -f "$CONFIG" ]; then
   echo "Registering '$RUNNER_NAME' with $GITLAB_URL ..."
   # --token takes a glrt- runner authentication token. Registration tokens were
   # removed upstream; the runner is created server-side first and handed this.
+  # --clone-url is not optional here. GitLab hands each job its own
+  # external_url to clone from, which on StartOS is an mDNS .local name with a
+  # certificate signed by the server's own CA. A job container can resolve
+  # neither, so without this every job dies at "Could not resolve host". The
+  # bridge address is plain HTTP and reachable from inside the job's network.
   gitlab-runner register \
     --non-interactive \
     --config "$CONFIG" \
     --url "$GITLAB_URL" \
+    --clone-url "$GITLAB_URL" \
     --token "$RUNNER_TOKEN" \
     --name "$RUNNER_NAME" \
     --executor docker \
@@ -76,6 +99,16 @@ fi
 
 # Concurrency is a top-level config key, not a register flag, so it is applied
 # on every start to let the Configure action change it without re-registering.
+if [ -f "$CONFIG" ]; then
+  # Re-assert the podman socket. `--docker-host` is written into the
+  # [runners.docker] section as `host`, at registration time, so a change to the
+  # runtime dir leaves the runner dialling a socket that no longer exists -- and
+  # nothing reports it until a job is picked up and fails to prepare.
+  if grep -qE '^[[:space:]]*host = "unix://.*podman\.sock"' "$CONFIG"; then
+    sed -i -E "s|^([[:space:]]*)host = \"unix://.*podman\.sock\"|\1host = \"$DOCKER_HOST\"|" "$CONFIG"
+  fi
+fi
+
 if command -v sed >/dev/null && [ -f "$CONFIG" ]; then
   if grep -q '^concurrent = ' "$CONFIG"; then
     sed -i "s/^concurrent = .*/concurrent = ${RUNNER_CONCURRENT}/" "$CONFIG"
