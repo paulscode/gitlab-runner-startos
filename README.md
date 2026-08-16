@@ -38,7 +38,7 @@ The image is built here rather than pulled, because upstream's image carries the
 | | |
 | --- | --- |
 | Image source | Custom Dockerfile: Debian + rootless Podman + upstream's `gitlab-runner` binary |
-| Architectures | x86_64 |
+| Architectures | x86_64; aarch64 built under emulation and **untested** |
 | Entrypoint | Custom (`assets/entrypoint.sh`) |
 
 The package declares two manifest flags that StartOS provides specifically for a nested OCI runtime: `userspaceFilesystems` (grants `/dev/fuse`, since kernel overlayfs-on-overlayfs is denied to unprivileged users) and `virtualNetworking` (grants `/dev/net/tun` for rootless job networking). The service's own container remains user-namespaced and AppArmor-confined; nothing about the host's posture changes.
@@ -146,7 +146,7 @@ A restored runner reconnects on its own: the registration in `config.toml` is st
 4. **One runner per install.** The package registers a single runner; upstream supports several in one `config.toml`.
 5. **`concurrent` is capped at 16** by the Configure action, and defaults to **1**. That default is deliberate rather than timid: every concurrent job is a full build competing for the same RAM and CPU as GitLab itself, and when a StartOS box comes under memory pressure the OS kills the heaviest container — which is GitLab, not the runner. So an over-ambitious setting here takes down the Git server rather than merely slowing CI. Raise it once you know what your own jobs cost.
 6. **`request_concurrency` is fixed at 4 and not user-configurable.** It governs how many job-request connections the runner holds open to GitLab, not how many jobs run. Upstream defaults it to 1, which leaves pipelines sitting pending for the whole long-poll timeout even against an idle runner; 4 is upstream's own recommendation and costs only a couple of idle connections to a GitLab on the same machine. There is no interesting decision here for a user to make, so it is not surfaced.
-7. **aarch64 is not built.** Cross-building the Podman stack requires emulation and has not been validated on ARM hardware.
+7. **aarch64 is untested.** The ARM build is produced under emulation and has never run on ARM hardware. It carries more risk than an ARM build of an ordinary package would: every job here executes as a nested rootless container, so the parts most likely to differ by architecture — the Podman stack, its networking, its storage driver — are exactly the parts this package depends on. Treat it as unproven, and report what you find.
 8. **Nested containers cannot use IPv6** by default — rootless networking is IPv4-only.
 
 ## Troubleshooting

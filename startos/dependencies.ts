@@ -12,7 +12,9 @@ import { sdk } from './sdk'
 export const setDependencies = sdk.setupDependencies(async ({ effects }) => ({
   gitlab: {
     kind: 'running',
-    versionRange: '>=19.2.2:0',
+    // 19.2.2:1 is the first GitLab carrying the no-input action this
+    // package calls to register itself; against :0 Configure would fail.
+    versionRange: '>=19.2.2:1',
     healthChecks: ['primary'],
   },
 }))

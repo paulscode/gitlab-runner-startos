@@ -1,4 +1,4 @@
-ARCHES := x86
+ARCHES := x86 arm
 # overrides to s9pk.mk must precede the include statement
 include node_modules/@start9labs/start-sdk/s9pk.mk
 
@@ -8,9 +8,8 @@ BUILD_DIR := builds/$(VERSION)
 SUFFIX    ?= -040
 TAG       := v$(shell awk -F"'" '/version:/ {print $$2; exit}' startos/versions/current.ts | tr ':' '_')
 
-# x86_64 only: cross-building the Podman stack means an emulated apt install,
-# and none of it has run on ARM hardware.
-RELEASE_ARCHES ?= x86_64
+# aarch64 ships marked untested, as GitLab's does -- see README.md.
+RELEASE_ARCHES ?= x86_64 aarch64
 
 .PHONY: release
 release:

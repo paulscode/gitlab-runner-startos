@@ -17,10 +17,11 @@ export const manifest = setupManifest({
       // not the rootless Podman engine needed to sandbox jobs inside a StartOS
       // service. The runner binary itself is copied from that image unmodified.
       source: { dockerBuild: { workdir: '.' } },
-      // aarch64 is deliberately absent. Cross-building this image means an
-      // emulated apt install of the whole Podman stack, and none of it has run
-      // on ARM hardware. Add it once the x86_64 executor is proven.
-      arch: ['x86_64'],
+      // aarch64 builds under emulation and ships untested -- no ARM hardware
+      // has run it. Every job it executes is a nested rootless container, so
+      // ARM has more that can differ here than in a package that only runs a
+      // binary. See the Limitations section of README.md.
+      arch: ['x86_64', 'aarch64'],
     },
   },
   dependencies: {

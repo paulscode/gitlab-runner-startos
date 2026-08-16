@@ -56,5 +56,6 @@ To get that token: in the other GitLab, go to the settings for the instance, gro
 - **Jobs need internet.** Each job pulls its container image from a public registry unless it has already been pulled once.
 - **The first job is slow.** It downloads a helper image and your job image. Later jobs reusing the same image are much quicker.
 - **Docker-in-Docker will not work.** Jobs run unprivileged, so pipelines that build container images with `docker:dind` are not supported here.
+- **On ARM hardware this is untested.** The ARM build has never been run. If your server is ARM, take a backup before depending on it.
 - **Re-running Configure creates a new runner** in GitLab each time you use *The GitLab on this server*. The old entries stay in the Runners list and can be deleted there.
 - **GitLab has to be running** when you use *The GitLab on this server*, since it is GitLab that creates the runner.
