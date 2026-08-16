@@ -31,10 +31,13 @@
 
 ## Remaining before release
 
-- [ ] **Exercise the Configure action through the UI.** The data path it writes
-      is verified (token minted by GitLab, stored, runner registered), but the
-      form itself and the cross-package `action.run` call have not been driven
-      end to end — the CLI cannot supply action input without the UI handshake.
+- [ ] **Exercise the Configure action through the UI.** Everything it does is
+      verified separately — the cross-service call to GitLab returns a token
+      that GitLab's own `runners/verify` accepts, and the registration path it
+      feeds has run pipelines to green — but the form itself has not been
+      submitted end to end. The CLI cannot drive it: this build of `start-cli`
+      does not pass action input at all, failing identically on actions known
+      to work from the UI.
 - Decided: `concurrent` stays at 1 (asymmetric failure modes — queuing is
   visible and harmless, over-subscription gets GitLab OOM-killed), and
   `request_concurrency` is pinned to 4, which is what upstream's warning was
