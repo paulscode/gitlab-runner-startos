@@ -6,7 +6,6 @@ set -euo pipefail
 : "${GITLAB_URL:=}"
 : "${RUNNER_TOKEN:=}"
 : "${RUNNER_NAME:=startos-runner}"
-: "${RUNNER_TAGS:=}"
 : "${RUNNER_CONCURRENT:=1}"
 : "${RUNNER_REQUEST_CONCURRENCY:=4}"
 : "${RUNNER_IMAGE:=alpine:latest}"

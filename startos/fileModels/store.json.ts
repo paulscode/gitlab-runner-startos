@@ -26,7 +26,6 @@ const shape = z
     externalUrl: z.string().catch(''),
 
     name: z.string().catch('startos-runner'),
-    tags: z.string().catch(''),
     concurrent: z.number().int().catch(1),
     /** Image used for jobs that do not specify one. */
     defaultImage: z.string().catch('alpine:latest'),

@@ -92,7 +92,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
           GITLAB_URL: gitlabUrl ?? '',
           RUNNER_TOKEN: store.token,
           RUNNER_NAME: store.name || 'startos-runner',
-          RUNNER_TAGS: store.tags,
           RUNNER_CONCURRENT: String(store.concurrent),
           // Not user-facing: this governs how many job-request connections the
           // runner keeps open to GitLab, not how many jobs run. Leaving it at

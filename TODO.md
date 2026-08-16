@@ -29,15 +29,15 @@
   25s of their runtime rather than serialising. The entrypoint's rewrite of
   `concurrent` from the store was applied correctly.
 
+- **Configure runs end to end from the UI.** Submitting the form asked GitLab
+  for a runner across the service boundary, got a token back, wrote it to the
+  store and registered — GitLab's `runners/verify` accepted the token as runner
+  6. An untagged job then ran green on it, confirming that a runner minted with
+  no tags and `run_untagged` picks up ordinary pipelines.
+
 ## Remaining before release
 
-- [ ] **Exercise the Configure action through the UI.** Everything it does is
-      verified separately — the cross-service call to GitLab returns a token
-      that GitLab's own `runners/verify` accepts, and the registration path it
-      feeds has run pipelines to green — but the form itself has not been
-      submitted end to end. The CLI cannot drive it: this build of `start-cli`
-      does not pass action input at all, failing identically on actions known
-      to work from the UI.
+
 - Decided: `concurrent` stays at 1 (asymmetric failure modes — queuing is
   visible and harmless, over-subscription gets GitLab OOM-killed), and
   `request_concurrency` is pinned to 4, which is what upstream's warning was

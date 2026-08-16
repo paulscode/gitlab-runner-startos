@@ -17,7 +17,6 @@ export const seedStore = sdk.setupOnInit(async (effects) => {
       useLocalGitlab: true,
       externalUrl: '',
       name: 'startos-runner',
-      tags: '',
       concurrent: 1,
       defaultImage: 'alpine:latest',
     },
